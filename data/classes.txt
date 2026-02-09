@@ -1,0 +1,2 @@
+C001|Programming 1|CS101
+C002|Database Systems|CS205
