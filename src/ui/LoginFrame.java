@@ -45,7 +45,10 @@ public class LoginFrame extends JFrame {
         GridBagConstraints gc = new GridBagConstraints();
         gc.gridx = 0;
         gc.fill = GridBagConstraints.HORIZONTAL;
-        gc.insets = new Insets(8, 0, 8, 0);
+        gc.weightx = 0.01;
+        gc.weighty = 0.1;
+        gc.anchor = GridBagConstraints.NORTH;
+        gc.insets = new Insets(2,0,2,0);
 
         txtUsername = UIUtils.modernTextField();
         txtPassword = UIUtils.modernPasswordField();
@@ -108,7 +111,7 @@ public class LoginFrame extends JFrame {
                 break;
 
             case "LEADER":
-                new LeaderDashboardFrame().setVisible(true);
+                new LeaderDashboardFrame(user).setVisible(true);
                 dispose();
                 break;
 
