@@ -2,45 +2,57 @@ package ui;
 
 import model.User;
 
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * LeaderDashboardFrame
  * -------------------
- * Academic Leader dashboard (styled like AdminDashboard).
+ * Academic Leader dashboard with embedded right-panel navigation.
  *
- * Changes (UI navigation only):
- * - Edit Profile opens inside the same window (right panel swaps)
- * - Manage Modules already opens inside the same window
- * - Sidebar has Dashboard button to return to dashboard view
+ * - Left sidebar navigation
+ * - Right side uses CardLayout to switch between screens
+ * - Logout + Window close returns to LoginFrame
  *
- * Logic kept:
- * - Logout -> LoginFrame
- * - X close -> LoginFrame
- * - Other screens still open in new windows (unchanged)
+ * NOTE:
+ * We embed screens by trying:
+ * 1) constructor(User, boolean, Runnable) + getMainPanel()
+ * 2) constructor(User) + JFrame content pane
+ * 3) constructor() + JFrame content pane
  */
 public class LeaderDashboardFrame extends JFrame {
 
     private final User loggedInUser;
 
-    // ✅ Right content area swaps views
+    // Right-side swapping system
     private CardLayout cardLayout;
-    private JPanel rightContainer;
+    private JPanel rightHost;
+    private final Map<String, JPanel> cachedScreens = new HashMap<>();
 
-    private static final String VIEW_DASHBOARD = "VIEW_DASHBOARD";
-    private static final String VIEW_MODULES = "VIEW_MODULES";
-    private static final String VIEW_PROFILE = "VIEW_PROFILE";
+    // Card keys
+    private static final String CARD_DASHBOARD = "DASHBOARD";
+    private static final String CARD_PROFILE   = "PROFILE";
+    private static final String CARD_MODULES   = "MODULES";
+    private static final String CARD_ASSIGN    = "ASSIGN";
+    private static final String CARD_REPORTS   = "REPORTS";
 
-    // Keep no-arg constructor for your current routeByRole() usage
+    // Screen class names
+    private static final String SCREEN_PROFILE = "ui.LeaderProfileFrame";
+    private static final String SCREEN_MODULES = "ui.ManageModulesFrame";
+    private static final String SCREEN_ASSIGN  = "ui.AssignLecturersFrame";     // ✅ NEW NAME
+    private static final String SCREEN_REPORTS = "ui.LeaderReportsFrame";
+
+    // Keep no-arg constructor for your routeByRole usage
     public LeaderDashboardFrame() {
         this(null);
     }
 
-    // Optional constructor if later you want to pass the user
     public LeaderDashboardFrame(User user) {
         this.loggedInUser = user;
 
@@ -48,7 +60,7 @@ public class LeaderDashboardFrame extends JFrame {
         setSize(1020, 620);
         setLocationRelativeTo(null);
 
-        // When user clicks X: go back to login (not exit)
+        // X close -> go login (not exit)
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
@@ -61,13 +73,13 @@ public class LeaderDashboardFrame extends JFrame {
         root.setBackground(Theme.BG);
         setContentPane(root);
 
-        // ===== Sidebar =====
+        // ---------- Sidebar ----------
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(Theme.SIDEBAR);
         sidebar.setPreferredSize(new Dimension(260, 620));
         sidebar.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        JLabel brand = preventBlueFocus(UIUtils.title("AFS Leader"));
+        JLabel brand = UIUtils.title("AFS Leader");
         brand.setForeground(Theme.TEXT);
         brand.setFont(UIUtils.font(16, Font.BOLD));
 
@@ -88,12 +100,13 @@ public class LeaderDashboardFrame extends JFrame {
         nav.setOpaque(false);
         nav.setBorder(new EmptyBorder(18, 0, 18, 0));
 
+        // ✅ Add Dashboard button
         JButton btnDashboard = UIUtils.ghostButton("🏠  Dashboard");
-        JButton btnProfile = UIUtils.ghostButton("👤  Edit Profile");
-        JButton btnModules = UIUtils.ghostButton("📚  Manage Modules");
-        JButton btnAssign = UIUtils.ghostButton("🔗  Assign Lecturers");
-        JButton btnReports = UIUtils.ghostButton("📊  Analyzed Reports");
-        JButton btnLogout = UIUtils.dangerButton("Logout");
+        JButton btnProfile   = UIUtils.ghostButton("👤  Edit Profile");
+        JButton btnModules   = UIUtils.ghostButton("📚  Manage Modules");
+        JButton btnAssign    = UIUtils.ghostButton("🔗  Assign Lecturers");
+        JButton btnReports   = UIUtils.ghostButton("📊  Analyzed Reports");
+        JButton btnLogout    = UIUtils.dangerButton("Logout");
 
         nav.add(btnDashboard);
         nav.add(btnProfile);
@@ -107,55 +120,57 @@ public class LeaderDashboardFrame extends JFrame {
 
         root.add(sidebar, BorderLayout.WEST);
 
-        // ===== Right Content Container (swappable) =====
+        // ---------- Right Host (CardLayout) ----------
         cardLayout = new CardLayout();
-        rightContainer = new JPanel(cardLayout);
-        rightContainer.setOpaque(false);
-        rightContainer.setBorder(new EmptyBorder(18, 18, 18, 18));
-        root.add(rightContainer, BorderLayout.CENTER);
+        rightHost = new JPanel(cardLayout);
+        rightHost.setOpaque(false);
+        rightHost.setBorder(new EmptyBorder(18, 18, 18, 18));
+        root.add(rightHost, BorderLayout.CENTER);
 
-        // ===== Dashboard View =====
-        JPanel dashboardView = buildDashboardView();
-        rightContainer.add(dashboardView, VIEW_DASHBOARD);
-
-        // ===== Modules View (embedded) =====
-        ManageModulesFrame modulesFrame = new ManageModulesFrame(loggedInUser, true, this::showDashboard);
-        rightContainer.add(modulesFrame.getMainPanel(), VIEW_MODULES);
-
-        // ✅ NEW: Profile View (embedded) =====
-        LeaderProfileFrame profileFrame = new LeaderProfileFrame(loggedInUser, true, this::showDashboard);
-        rightContainer.add(profileFrame.getMainPanel(), VIEW_PROFILE);
+        // Add Dashboard card first
+        JPanel dashboardPanel = buildDashboardPanel();
+        rightHost.add(dashboardPanel, CARD_DASHBOARD);
+        cachedScreens.put(CARD_DASHBOARD, dashboardPanel);
 
         // Default view
-        showDashboard();
+        cardLayout.show(rightHost, CARD_DASHBOARD);
 
-        // ===== Actions =====
+        // ---------- Actions ----------
         btnDashboard.addActionListener(e -> showDashboard());
 
-        // ✅ CHANGED: profile opens inside same window
-        btnProfile.addActionListener(e -> showProfile());
+        btnProfile.addActionListener(e ->
+                showOrBuildEmbedded(CARD_PROFILE, SCREEN_PROFILE)
+        );
 
-        // modules already swap view
-        btnModules.addActionListener(e -> showModules());
+        btnModules.addActionListener(e ->
+                showOrBuildEmbedded(CARD_MODULES, SCREEN_MODULES)
+        );
 
-        // keep others as new windows (unchanged)
-        btnAssign.addActionListener(e -> openFrameSafely("ui.AssignLecturersToModulesFrame"));
-        btnReports.addActionListener(e -> openFrameSafely("ui.LeaderReportsFrame"));
+        btnAssign.addActionListener(e ->
+                showOrBuildEmbedded(CARD_ASSIGN, SCREEN_ASSIGN)
+        );
+
+        btnReports.addActionListener(e ->
+                showOrBuildEmbedded(CARD_REPORTS, SCREEN_REPORTS)
+        );
 
         btnLogout.addActionListener(e -> goToLogin());
     }
 
-    // ===== Dashboard view builder =====
-    private JPanel buildDashboardView() {
+    // =========================
+    // Dashboard UI (Right side)
+    // =========================
+    private JPanel buildDashboardPanel() {
         JPanel content = new JPanel(new BorderLayout());
         content.setOpaque(false);
 
+        // Topbar (NO Open Reports button anymore)
         JPanel topbar = new JPanel(new BorderLayout());
         topbar.setOpaque(false);
         topbar.setBorder(new EmptyBorder(0, 0, 14, 0));
 
         JLabel pageTitle = UIUtils.title("Dashboard");
-        JLabel pageSub = UIUtils.muted("Choose a leader task from the sidebar");
+        JLabel pageSub   = UIUtils.muted("Choose a leader task from the sidebar");
 
         JPanel titles = new JPanel(new GridLayout(2, 1));
         titles.setOpaque(false);
@@ -165,56 +180,43 @@ public class LeaderDashboardFrame extends JFrame {
         topbar.add(titles, BorderLayout.WEST);
         content.add(topbar, BorderLayout.NORTH);
 
+        // Cards grid
         JPanel grid = new JPanel(new GridLayout(2, 2, 14, 14));
         grid.setOpaque(false);
 
-        // ✅ Profile swaps view now
         grid.add(statCard(
                 "Profile",
                 "Update your own details (users.txt)",
                 "Open Profile",
-                this::showProfile
+                () -> showOrBuildEmbedded(CARD_PROFILE, SCREEN_PROFILE)
         ));
 
         grid.add(statCard(
                 "Modules",
                 "Create / update / delete modules (modules.txt)",
                 "Open Modules",
-                this::showModules
+                () -> showOrBuildEmbedded(CARD_MODULES, SCREEN_MODULES)
         ));
 
         grid.add(statCard(
                 "Assign Lecturers",
                 "Assign lecturers to modules (modules.txt)",
                 "Open Assign",
-                () -> openFrameSafely("ui.AssignLecturersToModulesFrame")
+                () -> showOrBuildEmbedded(CARD_ASSIGN, SCREEN_ASSIGN)
         ));
 
         grid.add(statCard(
                 "Reports",
                 "View analyzed reports (sample data)",
                 "Open Reports",
-                () -> openFrameSafely("ui.LeaderReportsFrame")
+                () -> showOrBuildEmbedded(CARD_REPORTS, SCREEN_REPORTS)
         ));
 
         content.add(grid, BorderLayout.CENTER);
+
         return content;
     }
 
-    // ===== View switching =====
-    private void showDashboard() {
-        cardLayout.show(rightContainer, VIEW_DASHBOARD);
-    }
-
-    private void showModules() {
-        cardLayout.show(rightContainer, VIEW_MODULES);
-    }
-
-    private void showProfile() {
-        cardLayout.show(rightContainer, VIEW_PROFILE);
-    }
-
-    // Card helper
     private JPanel statCard(String title, String desc, String buttonText, Runnable action) {
         JPanel card = UIUtils.cardPanel();
         card.setLayout(new BorderLayout());
@@ -242,51 +244,117 @@ public class LeaderDashboardFrame extends JFrame {
         return card;
     }
 
-    /**
-     * Opens a JFrame by class name safely.
-     * Tries constructor(User) first, then no-arg.
-     */
-    private void openFrameSafely(String fullyQualifiedClassName) {
+    // ====================================
+    // Card switching + embedded screen build
+    // ====================================
+    private void showDashboard() {
+        cardLayout.show(rightHost, CARD_DASHBOARD);
+    }
+
+    private void showOrBuildEmbedded(String cardKey, String className) {
+        if (cachedScreens.containsKey(cardKey)) {
+            cardLayout.show(rightHost, cardKey);
+            return;
+        }
+
+        JPanel embeddedPanel = buildEmbeddedPanel(className);
+        if (embeddedPanel == null) return;
+
+        rightHost.add(embeddedPanel, cardKey);
+        cachedScreens.put(cardKey, embeddedPanel);
+        cardLayout.show(rightHost, cardKey);
+    }
+
+    private JPanel buildEmbeddedPanel(String fullyQualifiedClassName) {
         try {
             Class<?> clazz = Class.forName(fullyQualifiedClassName);
 
-            // try (User) constructor first
+            // Back action (returns to dashboard card)
+            Runnable back = this::showDashboard;
+
+            // 1) Try (User, boolean, Runnable) and getMainPanel()
             try {
-                Object frameObj = clazz.getConstructor(User.class).newInstance(loggedInUser);
-                if (frameObj instanceof JFrame) {
-                    ((JFrame) frameObj).setVisible(true);
-                    return;
-                }
+                Object obj = clazz.getConstructor(User.class, boolean.class, Runnable.class)
+                        .newInstance(loggedInUser, true, back);
+
+                JPanel p = extractMainPanel(obj);
+                if (p != null) return wrapIfNeeded(p);
+
             } catch (NoSuchMethodException ignored) {
-                // fall back to no-arg
+                // fallback
             }
 
-            Object frameObj = clazz.getConstructor().newInstance();
-            if (frameObj instanceof JFrame) {
-                ((JFrame) frameObj).setVisible(true);
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "Class exists but is not a JFrame:\n" + fullyQualifiedClassName,
-                        "Error", JOptionPane.ERROR_MESSAGE);
+            // 2) Try (User)
+            try {
+                Object obj = clazz.getConstructor(User.class).newInstance(loggedInUser);
+                JPanel p = extractFromFrameOrPanel(obj);
+                if (p != null) return wrapIfNeeded(p);
+            } catch (NoSuchMethodException ignored) {
+                // fallback
             }
+
+            // 3) Try ()
+            Object obj = clazz.getConstructor().newInstance();
+            JPanel p = extractFromFrameOrPanel(obj);
+            if (p != null) return wrapIfNeeded(p);
+
+            JOptionPane.showMessageDialog(this,
+                    "Class exists but cannot be embedded:\n" + fullyQualifiedClassName,
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+
         } catch (ClassNotFoundException ex) {
             JOptionPane.showMessageDialog(this,
                     "This screen is not implemented yet:\n" + fullyQualifiedClassName,
                     "Not ready", JOptionPane.INFORMATION_MESSAGE);
+            return null;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                     "Failed to open screen:\n" + fullyQualifiedClassName + "\n\nReason: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
+            return null;
         }
     }
 
+    // If the object has getMainPanel(), use it
+    private JPanel extractMainPanel(Object obj) {
+        try {
+            Method m = obj.getClass().getMethod("getMainPanel");
+            Object res = m.invoke(obj);
+            if (res instanceof JPanel) return (JPanel) res;
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    // If it’s a JPanel return it, if it’s a JFrame return its content pane as JPanel
+    private JPanel extractFromFrameOrPanel(Object obj) {
+        if (obj instanceof JPanel) return (JPanel) obj;
+
+        if (obj instanceof JFrame) {
+            Container c = ((JFrame) obj).getContentPane();
+            if (c instanceof JPanel) return (JPanel) c;
+
+            JPanel wrapper = new JPanel(new BorderLayout());
+            wrapper.setOpaque(false);
+            wrapper.add(c, BorderLayout.CENTER);
+            return wrapper;
+        }
+
+        return null;
+    }
+
+    // Some screens already include padding; we keep it safe without breaking layout
+    private JPanel wrapIfNeeded(JPanel p) {
+        // If it's already a big layout panel, return as-is
+        return p;
+    }
+
+    // ====================================
+    // Navigation / Logout
+    // ====================================
     private void goToLogin() {
         new LoginFrame().setVisible(true);
         dispose();
-    }
-
-    private JLabel preventBlueFocus(JLabel l) {
-        l.setFocusable(false);
-        return l;
     }
 }
