@@ -10,22 +10,13 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ManageUsersFrame extends JFrame {
+public class ManageUsersFrame extends JPanel {
 
     private static final String USERS_FILE = "data/users.txt";
 
@@ -51,15 +42,13 @@ public class ManageUsersFrame extends JFrame {
     }
 
     public ManageUsersFrame() {
-        setTitle("AFS Admin - Manage Users");
-        setSize(1250, 760);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+        setBackground(Theme.BG);
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Theme.BG);
         root.setBorder(new EmptyBorder(18, 18, 18, 18));
-        setContentPane(root);
+        add(root, BorderLayout.CENTER);
 
         // ===== Header =====
         JPanel header = new JPanel(new BorderLayout(12, 0));
@@ -79,10 +68,12 @@ public class ManageUsersFrame extends JFrame {
 
         JButton btnSearch = UIUtils.primaryButton("Search");
         JButton btnClearSearch = UIUtils.ghostButton("Clear");
+        JButton btnBack = UIUtils.ghostButton("Back");
 
         rightTop.add(txtSearch);
         rightTop.add(btnSearch);
         rightTop.add(btnClearSearch);
+        rightTop.add(btnBack);
 
         header.add(titles, BorderLayout.WEST);
         header.add(rightTop, BorderLayout.EAST);
@@ -126,13 +117,16 @@ public class ManageUsersFrame extends JFrame {
             refreshTable(allUsers);
         });
 
+        btnBack.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Use the sidebar to navigate.")
+        );
+
         // Load
         loadUsersFromFile();
         refreshTable(allUsers);
         updateStats();
     }
 
-    // ---------- UI Parts ----------
     private JPanel statCard(String title, String desc, JLabel valueLabel) {
         JPanel card = UIUtils.cardPanel();
         card.setLayout(new BorderLayout(0, 8));
@@ -254,10 +248,8 @@ public class ManageUsersFrame extends JFrame {
         table.setSelectionBackground(new Color(40, 70, 140));
         table.setSelectionForeground(Color.WHITE);
 
-        // Prevent squeezing + enable horizontal scrolling
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        // Apply widths and Age center
         applyColumnWidths();
 
         table.setDefaultRenderer(Object.class, usersCellRenderer());
@@ -278,21 +270,20 @@ public class ManageUsersFrame extends JFrame {
     private void applyColumnWidths() {
         if (table.getColumnModel().getColumnCount() < 8) return;
 
-        table.getColumnModel().getColumn(0).setPreferredWidth(80);   // ID
-        table.getColumnModel().getColumn(1).setPreferredWidth(140);  // Username
-        table.getColumnModel().getColumn(2).setPreferredWidth(160);  // Name
-        table.getColumnModel().getColumn(3).setPreferredWidth(110);  // Gender
-        table.getColumnModel().getColumn(4).setPreferredWidth(260);  // Email
-        table.getColumnModel().getColumn(5).setPreferredWidth(150);  // Phone
-        table.getColumnModel().getColumn(6).setPreferredWidth(80);   // Age
-        table.getColumnModel().getColumn(7).setPreferredWidth(140);  // Role
+        table.getColumnModel().getColumn(0).setPreferredWidth(80);
+        table.getColumnModel().getColumn(1).setPreferredWidth(140);
+        table.getColumnModel().getColumn(2).setPreferredWidth(160);
+        table.getColumnModel().getColumn(3).setPreferredWidth(110);
+        table.getColumnModel().getColumn(4).setPreferredWidth(260);
+        table.getColumnModel().getColumn(5).setPreferredWidth(150);
+        table.getColumnModel().getColumn(6).setPreferredWidth(80);
+        table.getColumnModel().getColumn(7).setPreferredWidth(140);
 
         DefaultTableCellRenderer center = new DefaultTableCellRenderer();
         center.setHorizontalAlignment(SwingConstants.CENTER);
         table.getColumnModel().getColumn(6).setCellRenderer(center);
     }
 
-    // ----- Header color fix (high contrast) -----
     private void styleHeader(JTableHeader header) {
         header.setReorderingAllowed(false);
         header.setResizingAllowed(true);
@@ -361,7 +352,6 @@ public class ManageUsersFrame extends JFrame {
 
             String[] p = line.split("\\|");
 
-            // New schema: id|username|password|name|gender|email|phone|age|role
             if (p.length >= 9) {
                 String id = safe(p, 0);
                 String username = safe(p, 1);
@@ -377,7 +367,6 @@ public class ManageUsersFrame extends JFrame {
                 continue;
             }
 
-            // Old schema: id|name|username|password|role
             if (p.length >= 5) {
                 String id = safe(p, 0);
                 String name = safe(p, 1);
