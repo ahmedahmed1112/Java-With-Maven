@@ -46,34 +46,58 @@ public class UserService {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                // if you have header in users.txt, skip it (optional safety)
+                // optional header safety
                 if (line.toLowerCase().startsWith("id|")) continue;
 
                 String[] p = line.split(SPLIT_REGEX);
-                if (p.length < 9) continue;
 
-                // expected order:
-                // 0 id, 1 username, 2 password, 3 name, 4 gender, 5 email, 6 phone, 7 age, 8 role
-                User u = new User();
-                u.setUserId(p[0].trim());
-                u.setUsername(p[1].trim());
-                u.setPassword(p[2].trim());
-                u.setName(p[3].trim());
-                u.setGender(p[4].trim());
-                u.setEmail(p[5].trim());
-                u.setPhone(p[6].trim());
-                try {
-                    u.setAge(Integer.parseInt(p[7].trim()));
-                } catch (Exception e) {
-                    u.setAge(0);
+
+                
+                    // check later
+
+
+                // New schema:
+                // id|username|password|name|gender|email|phone|age|role
+                if (p.length >= 9) {
+                    String id = safe(p, 0);
+                    String username = safe(p, 1);
+                    String password = safe(p, 2);
+                    String name = safe(p, 3);
+                    String gender = safe(p, 4);
+                    String email = safe(p, 5);
+                    String phone = safe(p, 6);
+                    int age = parseIntSafe(safe(p, 7), 0);
+                    String role = safe(p, 8);
+
+                    list.add(new User(id, username, password, name, gender, email, phone, age, role));
+                    continue;
                 }
-                u.setRole(p[8].trim());
 
-                list.add(u);
+                // Old schema fallback:
+                // id|name|username|password|role
+                if (p.length >= 5) {
+                    String id = safe(p, 0);
+                    String name = safe(p, 1);
+                    String username = safe(p, 2);
+                    String password = safe(p, 3);
+                    String role = safe(p, 4);
+
+                    list.add(new User(id, name, username, password, role));
+                }
             }
         } catch (IOException ignored) {
         }
 
         return list;
+    }
+
+    private String safe(String[] arr, int idx) {
+        if (arr == null || idx < 0 || idx >= arr.length || arr[idx] == null) return "";
+        return arr[idx].trim();
+    }
+
+    private int parseIntSafe(String s, int def) {
+        try { return Integer.parseInt(s.trim()); }
+        catch (Exception e) { return def; }
     }
 }

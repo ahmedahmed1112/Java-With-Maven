@@ -9,20 +9,11 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ManageGradingFrame extends JFrame {
+public class ManageGradingFrame extends JPanel {
 
     private static final int MIN_SCORE = 0;
     private static final int MAX_SCORE = 100;
@@ -39,15 +30,13 @@ public class ManageGradingFrame extends JFrame {
     private List<GradingRule> allRules = new ArrayList<>();
 
     public ManageGradingFrame() {
-        setTitle("AFS Admin - Manage Grading Rules");
-        setSize(1120, 700);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+        setBackground(Theme.BG);
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Theme.BG);
         root.setBorder(new EmptyBorder(18, 18, 18, 18));
-        setContentPane(root);
+        add(root, BorderLayout.CENTER);
 
         // ===== Header =====
         JPanel header = new JPanel(new BorderLayout(12, 0));
@@ -67,10 +56,12 @@ public class ManageGradingFrame extends JFrame {
 
         JButton btnSearch = UIUtils.primaryButton("Search");
         JButton btnClearSearch = UIUtils.ghostButton("Clear");
+        JButton btnBack = UIUtils.ghostButton("Back");
 
         rightTop.add(txtSearch);
         rightTop.add(btnSearch);
         rightTop.add(btnClearSearch);
+        rightTop.add(btnBack);
 
         header.add(titles, BorderLayout.WEST);
         header.add(rightTop, BorderLayout.EAST);
@@ -106,11 +97,14 @@ public class ManageGradingFrame extends JFrame {
             refreshTable(allRules);
         });
 
+        btnBack.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Use the sidebar to navigate.")
+        );
+
         // load
         reload();
     }
 
-    // ---------- UI Parts ----------
     private JPanel statCard(String title, String desc, JLabel valueLabel) {
         JPanel card = UIUtils.cardPanel();
         card.setLayout(new BorderLayout(0, 8));
@@ -159,7 +153,6 @@ public class ManageGradingFrame extends JFrame {
         cmbGrade.setFont(UIUtils.font(13, Font.BOLD));
         cmbGrade.setPreferredSize(new Dimension(260, 38));
 
-        // load grades in fixed order
         for (String g : GradingService.getAllowedGradesOrdered()) {
             cmbGrade.addItem(g);
         }
@@ -249,7 +242,6 @@ public class ManageGradingFrame extends JFrame {
         return card;
     }
 
-    // ---------- Renderers ----------
     private TableCellRenderer gradingCellRenderer() {
         return (tbl, value, isSelected, hasFocus, row, col) -> {
             String text = value == null ? "" : value.toString();
@@ -293,7 +285,6 @@ public class ManageGradingFrame extends JFrame {
         });
     }
 
-    // ---------- Data ----------
     private void reload() {
         allRules = GradingService.getAll();
         refreshTable(allRules);
@@ -326,7 +317,6 @@ public class ManageGradingFrame extends JFrame {
         refreshTable(filtered);
     }
 
-    // ---------- Actions ----------
     private void addRule() {
         ParsedRule parsed = parseInputs();
         if (parsed == null) return;
@@ -397,12 +387,11 @@ public class ManageGradingFrame extends JFrame {
     }
 
     private void clearForm() {
-        cmbGrade.setSelectedIndex(0);
+        if (cmbGrade.getItemCount() > 0) cmbGrade.setSelectedIndex(0);
         txtMin.setText("");
         txtMax.setText("");
     }
 
-    // ---------- Validation ----------
     private static class ParsedRule {
         String grade;
         int min;

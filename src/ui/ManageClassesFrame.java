@@ -11,7 +11,7 @@ import javax.swing.table.TableCellRenderer;
 import model.ClassRecord;
 import service.ClassService;
 
-public class ManageClassesFrame extends JFrame {
+public class ManageClassesFrame extends JPanel {
 
     private JTextField txtClassId, txtClassName, txtModuleId;
     private JTextField txtSearch;
@@ -24,15 +24,13 @@ public class ManageClassesFrame extends JFrame {
     private List<ClassRecord> allClasses = new ArrayList<>();
 
     public ManageClassesFrame() {
-        setTitle("AFS Admin - Manage Classes");
-        setSize(1120, 700);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+        setBackground(Theme.BG);
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(Theme.BG);
         root.setBorder(new EmptyBorder(18, 18, 18, 18));
-        setContentPane(root);
+        add(root, BorderLayout.CENTER);
 
         // ===== Header =====
         JPanel header = new JPanel(new BorderLayout(12, 0));
@@ -52,10 +50,12 @@ public class ManageClassesFrame extends JFrame {
 
         JButton btnSearch = UIUtils.primaryButton("Search");
         JButton btnClearSearch = UIUtils.ghostButton("Clear");
+        JButton btnBack = UIUtils.ghostButton("Back");
 
         rightTop.add(txtSearch);
         rightTop.add(btnSearch);
         rightTop.add(btnClearSearch);
+        rightTop.add(btnBack);
 
         header.add(titles, BorderLayout.WEST);
         header.add(rightTop, BorderLayout.EAST);
@@ -89,6 +89,10 @@ public class ManageClassesFrame extends JFrame {
             txtSearch.setText("");
             refreshTable(allClasses);
         });
+
+        btnBack.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Use the sidebar to navigate.")
+        );
 
         // load
         reload();
@@ -200,10 +204,7 @@ public class ManageClassesFrame extends JFrame {
         table.setSelectionBackground(new Color(40, 70, 140));
         table.setSelectionForeground(Color.WHITE);
 
-        // ✅ Color ALL columns (cells)
         table.setDefaultRenderer(Object.class, classesCellRenderer());
-
-        // ✅ Color header
         styleHeader(table.getTableHeader());
 
         JScrollPane sp = new JScrollPane(table);
@@ -215,7 +216,6 @@ public class ManageClassesFrame extends JFrame {
         return card;
     }
 
-    // ===== Renderers =====
     private TableCellRenderer classesCellRenderer() {
         return (tbl, value, isSelected, hasFocus, row, col) -> {
             String text = value == null ? "" : value.toString();
@@ -233,17 +233,10 @@ public class ManageClassesFrame extends JFrame {
             cell.setBackground(Theme.CARD);
 
             switch (col) {
-                case 0: // Class ID
-                    cell.setForeground(new Color(180, 140, 255)); // purple
-                    break;
-                case 1: // Class Name
-                    cell.setForeground(new Color(245, 245, 245)); // clear white
-                    break;
-                case 2: // Module ID
-                    cell.setForeground(new Color(120, 220, 255)); // cyan/blue
-                    break;
-                default:
-                    cell.setForeground(Theme.TEXT);
+                case 0: cell.setForeground(new Color(180, 140, 255)); break;
+                case 1: cell.setForeground(new Color(245, 245, 245)); break;
+                case 2: cell.setForeground(new Color(120, 220, 255)); break;
+                default: cell.setForeground(Theme.TEXT);
             }
 
             return cell;
@@ -261,13 +254,12 @@ public class ManageClassesFrame extends JFrame {
             lbl.setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
             lbl.setFont(UIUtils.font(13, Font.BOLD));
 
-            lbl.setBackground(new Color(28, 32, 38)); // darker header
+            lbl.setBackground(new Color(28, 32, 38));
 
-            // Header color per column
             switch (col) {
-                case 0: lbl.setForeground(new Color(205, 170, 255)); break; // Class ID
-                case 1: lbl.setForeground(new Color(245, 245, 245)); break; // Name
-                case 2: lbl.setForeground(new Color(170, 220, 255)); break; // Module
+                case 0: lbl.setForeground(new Color(205, 170, 255)); break;
+                case 1: lbl.setForeground(new Color(245, 245, 245)); break;
+                case 2: lbl.setForeground(new Color(170, 220, 255)); break;
                 default: lbl.setForeground(new Color(190, 210, 255));
             }
 
@@ -275,7 +267,6 @@ public class ManageClassesFrame extends JFrame {
         });
     }
 
-    // ===== Data =====
     private void reload() {
         allClasses = ClassService.getAll();
         refreshTable(allClasses);
@@ -308,7 +299,6 @@ public class ManageClassesFrame extends JFrame {
         refreshTable(filtered);
     }
 
-    // ===== Actions =====
     private void addClass() {
         String id = txtClassId.getText().trim();
         String name = txtClassName.getText().trim();

@@ -12,7 +12,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
-public class ManageAssignLecturersFrame extends JFrame {
+public class ManageAssignLecturersFrame extends JPanel {
 
     private final LeaderLecturerService service;
     private final UserService userService;
@@ -26,7 +26,7 @@ public class ManageAssignLecturersFrame extends JFrame {
     private JButton addBtn;
     private JButton deleteBtn;
     private JButton refreshBtn;
-    private JButton closeBtn;
+    private JButton backBtn;
 
     public ManageAssignLecturersFrame() {
         this(new LeaderLecturerService(), new UserService());
@@ -36,21 +36,19 @@ public class ManageAssignLecturersFrame extends JFrame {
         this.service = service;
         this.userService = userService;
 
-        setTitle("Manage Leader-Lecturer Assignments");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setSize(900, 550);
-        setLocationRelativeTo(null);
-
         initUI();
         loadCombos();
         loadTable();
     }
 
     private void initUI() {
+        setLayout(new BorderLayout());
+        setBackground(Theme.BG);
+
         JPanel root = new JPanel(new BorderLayout(12, 12));
         root.setBorder(new EmptyBorder(12, 12, 12, 12));
         root.setBackground(Theme.BG);
-        setContentPane(root);
+        add(root, BorderLayout.CENTER);
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);
@@ -66,7 +64,7 @@ public class ManageAssignLecturersFrame extends JFrame {
         addBtn = UIUtils.primaryButton("Assign");
         deleteBtn = UIUtils.primaryButton("Delete Selected");
         refreshBtn = UIUtils.primaryButton("Refresh");
-        closeBtn = UIUtils.primaryButton("Close");
+        backBtn = UIUtils.ghostButton("Back");
 
         c.gridx = 0; c.gridy = 0;
         form.add(UIUtils.muted("Leader:"), c);
@@ -91,7 +89,7 @@ public class ManageAssignLecturersFrame extends JFrame {
         buttons.add(addBtn);
         buttons.add(deleteBtn);
         buttons.add(refreshBtn);
-        buttons.add(closeBtn);
+        buttons.add(backBtn);
 
         c.gridx = 1; c.gridy = 2;
         c.fill = GridBagConstraints.NONE;
@@ -113,7 +111,10 @@ public class ManageAssignLecturersFrame extends JFrame {
         addBtn.addActionListener(e -> onAdd());
         deleteBtn.addActionListener(e -> onDeleteSelected());
         refreshBtn.addActionListener(e -> { loadCombos(); loadTable(); });
-        closeBtn.addActionListener(e -> dispose());
+
+        backBtn.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Use the sidebar to navigate.")
+        );
     }
 
     private void loadCombos() {
