@@ -1,0 +1,3 @@
+A001|M001|Assignment 1|Assignment|100|40|U101
+A002|M001|Quiz 1|Quiz|20|10|U101
+

@@ -1,0 +1,4 @@
+U001|STUDENT|ali|1234|Ali Ahmad|Male|ali@mail.com|0123456789|21
+U101|LECTURER|drsam|1234|Dr Sam|M|sam@apu.edu.my|0111111111|40
+
+U0102|STUDENT|S009|1111|||||0
